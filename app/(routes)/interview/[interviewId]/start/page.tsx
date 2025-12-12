@@ -719,15 +719,21 @@ await convex.mutation(api.Interview.SaveUserAnswer, {
       //   setAnswer("");
       // }
 
-      if(isLastQuestion){
-        setWaving(true);
-setAvatarText("Thank you! Your interview is complete 👋");
+     if (isLastQuestion) {
+  setWaving(true);
+  setAvatarText("Thank you! Your interview is complete 👋");
 
-setTimeout(() => {
-  window.location.href = "/dashboard";
-}, 2500);
+  setTimeout(() => {
+    window.location.href = "/dashboard";
+  }, 2500);
 
-      }
+} else {
+  setAvatarText("");          // remove greeting text
+  setWaving(false);           // stop waving
+  setCurrentIndex((i) => i + 1);  // ⬅️ MOVE TO NEXT QUESTION
+  setAnswer("");  
+}
+
     } catch (err) {
       console.error(err);
     } finally {
