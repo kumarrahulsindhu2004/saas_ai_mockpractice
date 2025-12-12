@@ -6,7 +6,7 @@ const openai = new OpenAI({
 });
 
 
-export async function POST(req: NextRequest) {
+export async function POST(req: NextRequest) {  
   const { questions, answer, questionIndex } = await req.json();
 
   const nextIndex = questionIndex + 1;

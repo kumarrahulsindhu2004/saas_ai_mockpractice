@@ -1,34 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function DidAvatar({
   text,
-  onDone,       // 🔥 new callback prop
+  speaking,
 }: {
   text: string;
-  onDone: () => void;
+  speaking: boolean;
 }) {
-  const [speaking, setSpeaking] = useState(false);
-
-  useEffect(() => {
-    if (!text) return;
-
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = "en-US";
-    utter.rate = 1;
-    utter.pitch = 1;
-
-    utter.onstart = () => setSpeaking(true);
-
-    utter.onend = () => {
-      setSpeaking(false);
-      onDone();   // 🔥 notify parent that AI finished speaking
-    };
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utter);
-  }, [text]);
-
   return (
     <>
       <style>{`
@@ -81,7 +60,7 @@ export default function DidAvatar({
           background: #ff4d6d;
           border-radius: 50px;
           opacity: 0;
-          transition: 0.2s;
+          transition: 0.15s;
         }
 
         .speaking .mouth {
@@ -109,8 +88,12 @@ export default function DidAvatar({
 
       <div className="avatar-wrapper">
         <div className={`avatar-circle ${speaking ? "speaking" : ""}`}>
-          <img src="/AI-talking-avatar.gif" alt="AI Avatar" className="avatar-image" />
-          <div className="mouth"></div>
+          <img
+            src="/AI-talking-avatar.gif"
+            alt="AI Avatar"
+            className="avatar-image"
+          />
+          <div className="mouth" />
         </div>
 
         <div className="speech-box">{text}</div>

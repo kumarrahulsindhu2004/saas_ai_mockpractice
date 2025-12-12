@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
     const firstQuestion = data.interviewQuestions[0];
 
     // Convert text → audio
+  
     const speech = await openai.audio.speech.create({
+
       model: "gpt-4o-mini-tts",
       voice: "alloy",
       input: firstQuestion.question,
@@ -35,11 +37,13 @@ export async function POST(req: NextRequest) {
     const audioBase64 = Buffer.from(
       await speech.arrayBuffer()
     ).toString("base64");
+    const END = performance.now();
 
     return NextResponse.json({
       question: firstQuestion.question,
       questionIndex: 0,
       audio: `data:audio/mp3;base64,${audioBase64}`,
+      
     });
 
   } catch (error: any) {

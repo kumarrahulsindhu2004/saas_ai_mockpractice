@@ -19,7 +19,7 @@ Resume content:
 ${resumeText}
 
 Rules:
-- Generate 3 DIFFERENT interview questions each time.
+- Generate 1 DIFFERENT interview questions each time.
 - Focus on projects, skills, and technologies from the resume.
 - Avoid generic behavioral questions.
 - Do NOT repeat common questions like "Tell me about yourself".
@@ -39,7 +39,7 @@ Job Title: ${jobTitle}
 Job Description: ${jobDescription}
 
 Rules:
-- Generate 3 unique interview questions.
+- Generate 2 unique interview questions.
 - Mix theory + practical questions.
 - Avoid generic questions.
 

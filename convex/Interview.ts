@@ -115,3 +115,34 @@ export const GetFeedback = query({
     return interview?.feedback ?? null;
   },
 });
+
+// --------------------------------------------------
+// Get Full Interview Session (Questions + Answers)
+// --------------------------------------------------
+export const GetInterviewSession = query({
+  args: {
+    interviewId: v.id("InterviewSessionTable"),
+  },
+  handler: async (ctx, { interviewId }) => {
+    const interview = await ctx.db.get(interviewId);
+
+    if (!interview) return null;
+
+    return {
+      interviewQuestions: interview.interviewQuestions ?? [],
+      userAnswers: interview.userAnswers ?? [],
+      feedback: interview.feedback ?? null,
+      status: interview.status,
+      jobTitle: interview.jobTitle,
+      jobDescription: interview.jobDescription,
+    };
+  },
+});
+
+export const GetUserById = query({
+  args: { uid: v.id("UserTable") },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.uid);
+    return user || null;
+  }
+});

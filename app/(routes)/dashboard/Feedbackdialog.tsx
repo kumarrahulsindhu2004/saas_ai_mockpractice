@@ -23,12 +23,28 @@ function Feedbackdialog({ interviewId }: FeedbackDialogProps) {
   const [feedback, setFeedback] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const loadFeedback = async () => {
-    setLoading(true);
-    const data = await convex.query(api.Interview.GetFeedback, { interviewId });
-    setFeedback(data ?? null);
-    setLoading(false);
-  };
+const loadFeedback = async () => {
+  setLoading(true);
+
+  // 1️⃣ Try to load existing feedback
+  let data = await convex.query(api.Interview.GetFeedback, { interviewId });
+
+  // 2️⃣ If feedback not found → generate it
+  if (!data) {
+    await fetch("/api/interview/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interviewId }),
+    });
+
+    // 3️⃣ Re-fetch generated feedback
+    data = await convex.query(api.Interview.GetFeedback, { interviewId });
+  }
+
+  setFeedback(data ?? null);
+  setLoading(false);
+};
+
 
   return (
     <Dialog onOpenChange={(open) => open && loadFeedback()}>
