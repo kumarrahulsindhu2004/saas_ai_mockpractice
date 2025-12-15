@@ -767,9 +767,9 @@ await convex.mutation(api.Interview.SaveUserAnswer, {
   waving={waving}
 /> */}
 
-            <p className="mt-3 text-gray-300">
+            {/* <p className="mt-3 text-gray-300">
               {questions[currentIndex].question}
-            </p>
+            </p> */}
           </div>
 
           <div className="bg-[#13131a] p-6 rounded-xl">

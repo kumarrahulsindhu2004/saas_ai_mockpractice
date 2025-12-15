@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import React from "react";
 
 export default function DidAvatar({
   text,
@@ -23,54 +23,43 @@ export default function DidAvatar({
           user-select: none;
         }
 
-        .avatar-circle {
-          width: 190px;
-          height: 190px;
-          margin: auto;
-          border-radius: 50%;
-          overflow: hidden;
-          position: relative;
+        /* 🔊 Voice Wave Container */
+        .wave-container {
           display: flex;
-          align-items: center;
           justify-content: center;
-          border: 5px solid transparent;
-          background: linear-gradient(#000, #000) padding-box,
-                      linear-gradient(135deg, #7c3aed, #4f46e5, #06b6d4) border-box;
-          box-shadow: 0 0 35px rgba(99,102,241,0.5);
-          animation: avatarGlow 5s infinite linear;
+          align-items: center;
+          height: 120px;
+          gap: 6px;
+          margin: 20px auto;
         }
 
-        @keyframes avatarGlow {
-          0% { transform: scale(1); filter: brightness(1); }
-          50% { transform: scale(1.03); filter: brightness(1.25); }
-          100% { transform: scale(1); filter: brightness(1); }
+        .wave-bar {
+          width: 6px;
+          height: 30px;
+          background: linear-gradient(180deg, #7c3aed, #22d3ee);
+          border-radius: 6px;
+          opacity: 0.5;
         }
 
-        .avatar-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .mouth {
-          position: absolute;
-          bottom: 18px;
-          width: 40px;
-          height: 12px;
-          background: #ff4d6d;
-          border-radius: 50px;
-          opacity: 0;
-          transition: 0.15s;
-        }
-
-        .speaking .mouth {
+        /* 🎤 Animate only when speaking */
+        .speaking .wave-bar {
+          animation: wave 1.2s infinite ease-in-out;
           opacity: 1;
-          animation: talk 0.18s infinite alternate;
         }
 
-        @keyframes talk {
-          from { height: 6px; }
-          to   { height: 20px; }
+        .wave-bar:nth-child(1) { animation-delay: 0s; }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+        .wave-bar:nth-child(6) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(7) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(8) { animation-delay: 0.1s; }
+
+        @keyframes wave {
+          0% { height: 20px; }
+          50% { height: 70px; }
+          100% { height: 20px; }
         }
 
         .speech-box {
@@ -82,20 +71,18 @@ export default function DidAvatar({
           border: 1px solid #2d2d2d;
           color: #e4e4e4;
           line-height: 1.5;
-          box-shadow: 0 0 10px rgba(33, 33, 33, 0.4);
         }
       `}</style>
 
       <div className="avatar-wrapper">
-        <div className={`avatar-circle ${speaking ? "speaking" : ""}`}>
-          <img
-            src="/AI-talking-avatar.gif"
-            alt="AI Avatar"
-            className="avatar-image"
-          />
-          <div className="mouth" />
+        {/* 🔊 Voice Wave */}
+        <div className={`wave-container ${speaking ? "speaking" : ""}`}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="wave-bar" />
+          ))}
         </div>
 
+        {/* 💬 Text */}
         <div className="speech-box">{text}</div>
       </div>
     </>
