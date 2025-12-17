@@ -5,6 +5,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
 
+  
   // ✅ Allow APIs
   '/api/workflows(.*)',
   '/api/generate-interview-question(.*)',

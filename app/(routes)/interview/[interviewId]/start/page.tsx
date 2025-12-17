@@ -575,6 +575,231 @@
 
 
 
+// this below code is main
+
+
+// "use client";
+
+// import { api } from "@/convex/_generated/api";
+// import { useConvex } from "convex/react";
+// import { useEffect, useState } from "react";
+// import { useParams } from "next/navigation";
+// import { Id } from "@/convex/_generated/dataModel";
+// import { recordAudio } from "@/lib/recordAudio";
+// import DidAvatar from "./DidAvatar";
+// // import { startInterviewLock, stopInterviewLock } from "@/lib/interviewLock";
+// // import { useProctorGuard } from "@/lib/useProctorGuard";
+
+
+// interface Q {
+//   question: string;
+//   questionNumber: number;
+// }
+
+// export default function StartInterview() {
+//   const { interviewId } = useParams();
+//   const convex = useConvex();
+
+//   const [questions, setQuestions] = useState<Q[]>([]);
+//   const [currentIndex, setCurrentIndex] = useState(0);
+//   const [answer, setAnswer] = useState("");
+//   const [recording, setRecording] = useState(false);
+//   const [aiSpeaking, setAiSpeaking] = useState(false);
+
+
+
+//   //adding wives
+//   const [waving, setWaving] = useState(false);
+// const [avatarText, setAvatarText] = useState("");
+
+//   const isLastQuestion = currentIndex === questions.length - 1;
+
+//   // useProctorGuard(true); // ✅ activate proctoring
+
+
+//   /* ✅ LOCK SCREEN ON ENTER */
+//   // useEffect(() => {
+//   //   startInterviewLock();
+//   //   return () => stopInterviewLock();
+//   // }, []);
+// // greeeting add 
+//   useEffect(() => {
+//   setWaving(true);
+//   setAvatarText("Hi! Welcome to your interview 👋");
+
+//   setTimeout(() => {
+//     setWaving(false);
+//   }, 2500);
+// }, []);
+
+//   /* ✅ LOAD QUESTIONS */
+//   useEffect(() => {
+//     const load = async () => {
+//       const data = await convex.query(
+//         api.Interview.GetInterviewQuestions,
+//         { interviewRecordsId: interviewId as Id<"InterviewSessionTable"> }
+//       );
+
+//       if (!data?.interviewQuestions?.length) return;
+
+//       setQuestions(
+//         data.interviewQuestions.map((q: any, i: number) => ({
+//           question: q.question,
+//           questionNumber: i + 1,
+//         }))
+//       );
+//     };
+//     load();
+//   }, [interviewId, convex]);
+
+//   /* ✅ AI SPEAK → LISTEN */
+//   useEffect(() => {
+//     if (!questions.length) return;
+
+//     const ask = async () => {
+//       setAiSpeaking(true);
+
+//       const res = await fetch("/api/interview/tts", {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({ text: questions[currentIndex].question }),
+//       });
+
+//       const audioBlob = await res.blob();
+//       const audioUrl = URL.createObjectURL(audioBlob);
+//       const audio = new Audio(audioUrl);
+
+//       audio.onended = async () => {
+//         URL.revokeObjectURL(audioUrl);
+//         setAiSpeaking(false);
+//         await startListening();
+//       };
+
+//       await audio.play();
+//     };
+
+//     ask();
+//   }, [questions, currentIndex]);
+
+//   /* ✅ RECORD + STT */
+//   const startListening = async () => {
+//     try {
+//       setRecording(true);
+
+//       const audioBlob = await recordAudio();
+//       const formData = new FormData();
+//       formData.append("audio", audioBlob);
+
+//       const res = await fetch("/api/interview/stt", {
+//         method: "POST",
+//         body: formData,
+//       });
+
+//       const { text } = await res.json();
+//       setAnswer(text);
+
+//       // ✅ Save answer
+//       const safeAnswer = text?.trim() || "No answer detected";
+
+// await convex.mutation(api.Interview.SaveUserAnswer, {
+//   interviewId: interviewId as Id<"InterviewSessionTable">,
+//   questionNumber: questions[currentIndex].questionNumber,
+//   answer: safeAnswer,
+// });
+
+//       // await convex.mutation(api.Interview.SaveUserAnswer, {
+//       //   interviewId: interviewId as Id<"InterviewSessionTable">,
+//       //   questionNumber: questions[currentIndex].questionNumber,
+//       //   answer: text,
+//       // });
+
+//       // if (isLastQuestion) {
+//       //   // stopInterviewLock();
+//       //   window.location.href = "/dashboard";
+//       // } else {
+//       //   setCurrentIndex((i) => i + 1);
+//       //   setAnswer("");
+//       // }
+
+//      if (isLastQuestion) {
+//   setWaving(true);
+//   setAvatarText("Thank you! Your interview is complete 👋");
+
+//   setTimeout(() => {
+//     window.location.href = "/dashboard";
+//   }, 2500);
+
+// } else {
+//   setAvatarText("");          // remove greeting text
+//   setWaving(false);           // stop waving
+//   setCurrentIndex((i) => i + 1);  // ⬅️ MOVE TO NEXT QUESTION
+//   setAnswer("");  
+// }
+
+//     } catch (err) {
+//       console.error(err);
+//     } finally {
+//       setRecording(false);
+//     }
+//   };
+
+//   if (!questions.length) return <p>Loading interview…</p>;
+
+//   /* ✅ UI */
+//   return (
+//     <div className="min-h-screen bg-[#0b0b0e] text-gray-100">
+//       <div className="max-w-6xl mx-auto px-6 py-6">
+//         <div className="flex justify-between mb-6">
+//           <h1 className="text-lg font-semibold">AI Mock Interview</h1>
+//           <span className="text-sm text-gray-400">
+//             Question {currentIndex + 1}/{questions.length}
+//           </span>
+//         </div>
+
+//         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+//           <div className="bg-[#13131a] p-6 rounded-xl">
+//             <DidAvatar
+//               text={questions[currentIndex].question}
+//               speaking={aiSpeaking}
+//             />
+
+//             {/* <DidAvatar
+//   text={avatarText || questions[currentIndex].question}
+//   speaking={aiSpeaking}
+//   waving={waving}
+// /> */}
+
+//             {/* <p className="mt-3 text-gray-300">
+//               {questions[currentIndex].question}
+//             </p> */}
+//           </div>
+
+//           <div className="bg-[#13131a] p-6 rounded-xl">
+//             {aiSpeaking && <p className="text-indigo-400">🤖 AI speaking…</p>}
+//             {recording && <p className="text-green-400">🎤 Listening…</p>}
+//             {!recording && !aiSpeaking && (
+//               <p className="text-gray-500">Processing…</p>
+//             )}
+
+//             {answer && (
+//               <div className="mt-4 bg-black/50 p-4 rounded-lg">
+//                 {answer}
+//               </div>
+//             )}
+//           </div>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+// this abobe code is main
+
+
+
+// now here tring new code for wait and res 
+
 
 "use client";
 
@@ -585,9 +810,6 @@ import { useParams } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { recordAudio } from "@/lib/recordAudio";
 import DidAvatar from "./DidAvatar";
-// import { startInterviewLock, stopInterviewLock } from "@/lib/interviewLock";
-// import { useProctorGuard } from "@/lib/useProctorGuard";
-
 
 interface Q {
   question: string;
@@ -604,33 +826,9 @@ export default function StartInterview() {
   const [recording, setRecording] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
 
-
-
-  //adding wives
-  const [waving, setWaving] = useState(false);
-const [avatarText, setAvatarText] = useState("");
-
   const isLastQuestion = currentIndex === questions.length - 1;
 
-  // useProctorGuard(true); // ✅ activate proctoring
-
-
-  /* ✅ LOCK SCREEN ON ENTER */
-  // useEffect(() => {
-  //   startInterviewLock();
-  //   return () => stopInterviewLock();
-  // }, []);
-// greeeting add 
-  useEffect(() => {
-  setWaving(true);
-  setAvatarText("Hi! Welcome to your interview 👋");
-
-  setTimeout(() => {
-    setWaving(false);
-  }, 2500);
-}, []);
-
-  /* ✅ LOAD QUESTIONS */
+  /* ---------------- LOAD QUESTIONS ---------------- */
   useEffect(() => {
     const load = async () => {
       const data = await convex.query(
@@ -647,10 +845,11 @@ const [avatarText, setAvatarText] = useState("");
         }))
       );
     };
+
     load();
   }, [interviewId, convex]);
 
-  /* ✅ AI SPEAK → LISTEN */
+  /* ---------------- AI SPEAK QUESTION ---------------- */
   useEffect(() => {
     if (!questions.length) return;
 
@@ -673,77 +872,100 @@ const [avatarText, setAvatarText] = useState("");
         await startListening();
       };
 
-      await audio.play();
+      audio.play();
     };
 
     ask();
   }, [questions, currentIndex]);
 
-  /* ✅ RECORD + STT */
+  /* ---------------- AI SPEAK HELPER ---------------- */
+  const speakText = async (text: string) => {
+    setAiSpeaking(true);
+
+    const res = await fetch("/api/interview/tts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    return new Promise<void>((resolve) => {
+      const audio = new Audio(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        setAiSpeaking(false);
+        resolve();
+      };
+      audio.play();
+    });
+  };
+
+  /* ---------------- RECORD + STT ---------------- */
   const startListening = async () => {
-    try {
-      setRecording(true);
+    let userSpoke = false;
 
-      const audioBlob = await recordAudio();
-      const formData = new FormData();
-      formData.append("audio", audioBlob);
+    // ⏱️ 10 sec silence warning
+    const earlyTimer = setTimeout(async () => {
+      if (!userSpoke) {
+        await speakText("Hey, are you here?");
+      }
+    }, 5000);
 
-      const res = await fetch("/api/interview/stt", {
-        method: "POST",
-        body: formData,
-      });
+    // 🎤 record max 20 sec
+    const audioBlob = await recordAudio(
+      20000,
+      2000,
+      () => {
+        userSpoke = true;
+      }
+    );
 
-      const { text } = await res.json();
-      setAnswer(text);
+    clearTimeout(earlyTimer);
 
-      // ✅ Save answer
-      const safeAnswer = text?.trim() || "No answer detected";
+    // ❌ user never spoke
+    if (!audioBlob) {
+      await speakText("Thank you for connecting. Have a nice day.");
+      window.location.href = "/dashboard";
+      return;
+    }
 
-await convex.mutation(api.Interview.SaveUserAnswer, {
-  interviewId: interviewId as Id<"InterviewSessionTable">,
-  questionNumber: questions[currentIndex].questionNumber,
-  answer: safeAnswer,
-});
+    setRecording(true);
 
-      // await convex.mutation(api.Interview.SaveUserAnswer, {
-      //   interviewId: interviewId as Id<"InterviewSessionTable">,
-      //   questionNumber: questions[currentIndex].questionNumber,
-      //   answer: text,
-      // });
+    const formData = new FormData();
+    formData.append("audio", audioBlob);
 
-      // if (isLastQuestion) {
-      //   // stopInterviewLock();
-      //   window.location.href = "/dashboard";
-      // } else {
-      //   setCurrentIndex((i) => i + 1);
-      //   setAnswer("");
-      // }
+    const res = await fetch("/api/interview/stt", {
+      method: "POST",
+      body: formData,
+    });
 
-     if (isLastQuestion) {
-  setWaving(true);
-  setAvatarText("Thank you! Your interview is complete 👋");
+    const { text } = await res.json();
+    const safeAnswer = text?.trim() || "No answer detected";
+    setAnswer(safeAnswer);
 
-  setTimeout(() => {
-    window.location.href = "/dashboard";
-  }, 2500);
+    await convex.mutation(api.Interview.SaveUserAnswer, {
+      interviewId: interviewId as Id<"InterviewSessionTable">,
+      questionNumber: questions[currentIndex].questionNumber,
+      answer: safeAnswer,
+    });
 
-} else {
-  setAvatarText("");          // remove greeting text
-  setWaving(false);           // stop waving
-  setCurrentIndex((i) => i + 1);  // ⬅️ MOVE TO NEXT QUESTION
-  setAnswer("");  
-}
+    setRecording(false);
 
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setRecording(false);
+    // ➡️ NEXT STEP
+    if (isLastQuestion) {
+      await speakText("Thank you! Your interview is complete.");
+      window.location.href = "/dashboard";
+    } else {
+      setAnswer("");
+      setCurrentIndex((i) => i + 1);
     }
   };
 
   if (!questions.length) return <p>Loading interview…</p>;
 
-  /* ✅ UI */
+  /* ---------------- UI ---------------- */
   return (
     <div className="min-h-screen bg-[#0b0b0e] text-gray-100">
       <div className="max-w-6xl mx-auto px-6 py-6">
@@ -760,16 +982,6 @@ await convex.mutation(api.Interview.SaveUserAnswer, {
               text={questions[currentIndex].question}
               speaking={aiSpeaking}
             />
-
-            {/* <DidAvatar
-  text={avatarText || questions[currentIndex].question}
-  speaking={aiSpeaking}
-  waving={waving}
-/> */}
-
-            {/* <p className="mt-3 text-gray-300">
-              {questions[currentIndex].question}
-            </p> */}
           </div>
 
           <div className="bg-[#13131a] p-6 rounded-xl">
@@ -790,6 +1002,36 @@ await convex.mutation(api.Interview.SaveUserAnswer, {
     </div>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
