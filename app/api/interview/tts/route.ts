@@ -51,9 +51,20 @@
 // }
 
 
+
+
+
+
+
+
+
+
+
 import { NextRequest, NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+// export const runtime = "edge";
+
 
 // Retry wrapper
 async function retryFetch(url: string, options: any, retries = 2) {
@@ -83,7 +94,10 @@ export async function POST(req: NextRequest) {
 
     // ✅ Use FREE, FAST model
     const dgRes = await retryFetch(
-      "https://api.deepgram.com/v1/speak?model=aura-luna-en",
+      // "https://api.deepgram.com/v1/speak?model=aura-luna-en",
+      "https://api.deepgram.com/v1/speak?model=aura-luna-en&encoding=mp3",
+
+
       {
         method: "POST",
         headers: {
@@ -105,7 +119,9 @@ export async function POST(req: NextRequest) {
       throw new Error(errText);
     }
 
-    const audioBuffer = Buffer.from(await dgRes.arrayBuffer());
+    // const audioBuffer = Buffer.from(await dgRes.arrayBuffer());
+      const audioArrayBuffer = await dgRes.arrayBuffer();
+    
     const end = performance.now();
 
     console.log(
@@ -114,8 +130,8 @@ export async function POST(req: NextRequest) {
       )}ms | Total: ${(end - start).toFixed(0)}ms`
     );
 
-    return new NextResponse(audioBuffer, {
-      headers: { "Content-Type": "audio/mpeg" },
+    return new NextResponse(audioArrayBuffer, {
+      headers: { "Content-Type": "audio/mpeg","Cache-Control": "no-store" },
     });
   } catch (err) {
     console.error("❌ Deepgram TTS failed:", err);
