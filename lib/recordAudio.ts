@@ -65,25 +65,17 @@
 
 
 
-
-
-
-
-
 export const recordAudio = (
-  maxDuration = 30000,
-  silenceTimeout = 2000,
+  duration = 30000,
   onSpeechDetected?: () => void
-): Promise<Blob | null> => {
+): Promise<Blob> => {
   return new Promise(async (resolve) => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
     const mediaRecorder = new MediaRecorder(stream, {
       mimeType: "audio/webm",
     });
 
     const chunks: BlobPart[] = [];
-    let silenceTimer: NodeJS.Timeout;
     let spoke = false;
 
     const audioContext = new AudioContext();
@@ -93,21 +85,18 @@ export const recordAudio = (
 
     const data = new Uint8Array(analyser.fftSize);
 
-    const detectSilence = () => {
+    const detectSpeech = () => {
       analyser.getByteTimeDomainData(data);
       const volume =
         data.reduce((a, b) => a + Math.abs(b - 128), 0) / data.length;
 
-      if (volume > 3) {
+      if (volume > 3 && !spoke) {
         spoke = true;
         onSpeechDetected?.();
-        clearTimeout(silenceTimer);
-      } else if (spoke) {
-        silenceTimer = setTimeout(() => mediaRecorder.stop(), silenceTimeout);
       }
 
       if (mediaRecorder.state === "recording") {
-        requestAnimationFrame(detectSilence);
+        requestAnimationFrame(detectSpeech);
       }
     };
 
@@ -117,14 +106,17 @@ export const recordAudio = (
 
     mediaRecorder.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
-      resolve(spoke ? new Blob(chunks, { type: "audio/webm" }) : null);
+      resolve(new Blob(chunks, { type: "audio/webm" }));
     };
 
     mediaRecorder.start();
-    detectSilence();
+    detectSpeech();
 
+    // ⏱ HARD STOP AT 30 SECONDS
     setTimeout(() => {
-      if (mediaRecorder.state === "recording") mediaRecorder.stop();
-    }, maxDuration);
+      if (mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }, duration);
   });
 };

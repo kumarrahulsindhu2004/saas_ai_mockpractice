@@ -142,7 +142,7 @@
 //   //   }
 //   // };
 
-  
+
 //   const startListening = async () => {
 //   try {
 //     setRecording(true);
@@ -823,13 +823,11 @@
 
 
 
-
-
 "use client";
 
 import { api } from "@/convex/_generated/api";
 import { useConvex } from "convex/react";
-import { useEffect, useState,useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { recordAudio } from "@/lib/recordAudio";
@@ -846,111 +844,51 @@ export default function StartInterview() {
 
   const [questions, setQuestions] = useState<Q[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answer, setAnswer] = useState("");
   const [recording, setRecording] = useState(false);
   const [aiSpeaking, setAiSpeaking] = useState(false);
 
+  const flowAbortRef = useRef<AbortController | null>(null);
+  const finishedRef = useRef(false);
+
   const isLastQuestion = currentIndex === questions.length - 1;
-
-  // const startedRef = useRef(false);
-const flowAbortRef = useRef<AbortController | null>(null);
-
-  const sleep = (ms: number, signal: AbortSignal) =>
-  new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(resolve, ms);
-    signal.addEventListener("abort", () => {
-      clearTimeout(timer);
-      reject("aborted");
-    });
-  });
 
   /* ---------------- LOAD QUESTIONS ---------------- */
   useEffect(() => {
-    const load = async () => {
-      const data = await convex.query(
-        api.Interview.GetInterviewQuestions,
-        { interviewRecordsId: interviewId as Id<"InterviewSessionTable"> }
-      );
-
-      if (!data?.interviewQuestions?.length) return;
-
-      setQuestions(
-        data.interviewQuestions.map((q: any, i: number) => ({
-          question: q.question,
-          questionNumber: i + 1,
-        }))
-      );
-    };
-
-    load();
+    convex
+      .query(api.Interview.GetInterviewQuestions, {
+        interviewRecordsId: interviewId as Id<"InterviewSessionTable">,
+      })
+      .then((data) => {
+        if (!data?.interviewQuestions?.length) return;
+        setQuestions(
+          data.interviewQuestions.map((q: any, i: number) => ({
+            question: q.question,
+            questionNumber: i + 1,
+          }))
+        );
+      });
   }, [interviewId, convex]);
 
-  /* ---------------- AI SPEAK QUESTION ---------------- */
-  // useEffect(() => {
-  //   if (!questions.length) return;
+  /* ---------------- MAIN FLOW ---------------- */
+  useEffect(() => {
+    if (!questions.length) return;
 
-  //   const ask = async () => {
-  //     setAiSpeaking(true);
+    flowAbortRef.current?.abort();
+    const controller = new AbortController();
+    flowAbortRef.current = controller;
 
-  //     const res = await fetch("/api/interview/tts", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ text: questions[currentIndex].question }),
-  //     });
+    const run = async () => {
+      try {
+        await speakText(questions[currentIndex].question);
+        await listenWithWarnings();
+      } catch {}
+    };
 
-  //     const audioBlob = await res.blob();
-  //     const audioUrl = URL.createObjectURL(audioBlob);
-  //     const audio = new Audio(audioUrl);
+    run();
+    return () => controller.abort();
+  }, [questions, currentIndex]);
 
-  //     audio.onended = async () => {
-  //       URL.revokeObjectURL(audioUrl);
-  //       setAiSpeaking(false);
-  //       await startListening();
-  //     };
-
-  //     audio.play();
-  //   };
-
-  //   ask();
-  // }, [questions, currentIndex]);
-
-
-
-
-
-useEffect(() => {
-  if (!questions.length) return;
-
-  // cancel previous flow
-  flowAbortRef.current?.abort();
-
-  const controller = new AbortController();
-  flowAbortRef.current = controller;
-
-  const run = async () => {
-    try {
-      await speakText(questions[currentIndex].question);
-      if (!controller.signal.aborted) {
-        await startAnswerFlow(controller.signal); // ✅ pass signal
-      }
-    } catch (e) {
-      if (!controller.signal.aborted) console.error(e);
-    }
-  };
-
-  run();
-
-  return () => controller.abort();
-}, [questions, currentIndex]);
-
-
-
-
-
-
-
-
-  /* ---------------- AI SPEAK HELPER ---------------- */
+  /* ---------------- TTS ---------------- */
   const speakText = async (text: string) => {
     setAiSpeaking(true);
 
@@ -963,114 +901,48 @@ useEffect(() => {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
 
-    return new Promise<void>((resolve) => {
+    await new Promise<void>((resolve) => {
       const audio = new Audio(url);
       audio.onended = () => {
         URL.revokeObjectURL(url);
-        setAiSpeaking(false);
         resolve();
       };
       audio.play();
     });
+
+    setAiSpeaking(false);
   };
 
-  /* ---------------- RECORD + STT ---------------- */
-  // const startListening = async () => {
-  //   let userSpoke = false;
-
-  //   // ⏱️ 10 sec silence warning
-  //   const earlyTimer = setTimeout(async () => {
-  //     if (!userSpoke) {
-  //       await speakText("Hey, are you here?");
-  //     }
-  //   }, 5000);
-
-  //   // 🎤 record max 20 sec
-  //   const audioBlob = await recordAudio(
-  //     20000,
-  //     2000,
-  //     () => {
-  //       userSpoke = true;
-  //     }
-  //   );
-
-  //   clearTimeout(earlyTimer);
-
-  //   // ❌ user never spoke
-  //   if (!audioBlob) {
-  //     await speakText("Thank you for connecting. Have a nice day.");
-  //     window.location.href = "/dashboard";
-  //     return;
-  //   }
-
-  //   setRecording(true);
-
-  //   const formData = new FormData();
-  //   formData.append("audio", audioBlob);
-
-  //   const res = await fetch("/api/interview/stt", {
-  //     method: "POST",
-  //     body: formData,
-  //   });
-
-  //   const { text } = await res.json();
-  //   const safeAnswer = text?.trim() || "No answer detected";
-  //   setAnswer(safeAnswer);
-
-  //   await convex.mutation(api.Interview.SaveUserAnswer, {
-  //     interviewId: interviewId as Id<"InterviewSessionTable">,
-  //     questionNumber: questions[currentIndex].questionNumber,
-  //     answer: safeAnswer,
-  //   });
-
-  //   setRecording(false);
-
-  //   // ➡️ NEXT STEP
-  //   if (isLastQuestion) {
-  //     await speakText("Thank you! Your interview is complete.");
-  //     window.location.href = "/dashboard";
-  //   } else {
-  //     setAnswer("");
-  //     setCurrentIndex((i) => i + 1);
-  //   }
-  // };
-
-const startAnswerFlow = async (signal: AbortSignal) => {
+  /* ---------------- LISTEN WITH WARNINGS ---------------- */
+const listenWithWarnings = async () => {
   let spoke = false;
 
-  try {
-    await sleep(10000, signal);
-    if (spoke) return;
-    await speakText("Hey, are you there?");
-
-    await sleep(10000, signal);
-    if (spoke) return;
-    await speakText("Please start answering.");
-
-    await sleep(7000, signal);
-    if (spoke) return;
-    await speakText("Last chance to answer.");
-  } catch {
-    return; // aborted safely
-  }
-
-  // ⛔ AFTER 3 WARNINGS → NO ANSWER → END INTERVIEW
-  if (!spoke) {
-    await speakText("Interview ended due to no response.");
-    window.location.href = "/dashboard";
-    return;
-  }
-
-  // 🎤 ONLY if user spoke (safety check)
-  const audioBlob = await recordAudio(
-    30000,
-    2000,
-    () => (spoke = true)
-  );
-
-  if (!audioBlob || signal.aborted) return;
-
   setRecording(true);
+
+  const recordPromise = recordAudio(30000, () => {
+    spoke = true;
+  });
+
+  setTimeout(() => {
+    if (!spoke) speakText("Please start answering.");
+  }, 10000);
+
+  setTimeout(() => {
+    if (!spoke) speakText("You can start speaking now.");
+  }, 17000);
+
+  setTimeout(() => {
+    if (!spoke) {
+      speakText("Thank you for connecting.");
+      window.location.href = "/dashboard";
+    }
+  }, 25000);
+
+  const audioBlob = await recordPromise;
+
+  setRecording(false);
+
+  if (!spoke) return;
 
   const formData = new FormData();
   formData.append("audio", audioBlob);
@@ -1088,8 +960,6 @@ const startAnswerFlow = async (signal: AbortSignal) => {
     answer: text?.trim() || "No answer detected",
   });
 
-  setRecording(false);
-
   if (isLastQuestion) {
     await speakText("Thank you. Your interview is complete.");
     window.location.href = "/dashboard";
@@ -1100,10 +970,54 @@ const startAnswerFlow = async (signal: AbortSignal) => {
 
 
 
+  /* ---------------- FINISH ---------------- */
+  const finish = async (audioBlob: Blob | null) => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
 
-  if (!questions.length) return <p>Loading interview…</p>;
+    if (!audioBlob) {
+      await speakText("Interview ended due to no response.");
+      window.location.href = "/dashboard";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("audio", audioBlob);
+
+    const res = await fetch("/api/interview/stt", {
+      method: "POST",
+      body: formData,
+    });
+
+    const { text } = await res.json();
+
+    await convex.mutation(api.Interview.SaveUserAnswer, {
+      interviewId: interviewId as Id<"InterviewSessionTable">,
+      questionNumber: questions[currentIndex].questionNumber,
+      answer: text?.trim() || "No answer detected",
+    });
+
+    if (isLastQuestion) {
+      await speakText("Thank you. Your interview is complete.");
+      window.location.href = "/dashboard";
+    } else {
+      finishedRef.current = false;
+      setCurrentIndex((i) => i + 1);
+    }
+  };
+
+  const sleep = (ms: number, signal: AbortSignal) =>
+    new Promise<void>((resolve, reject) => {
+      const t = setTimeout(resolve, ms);
+      signal.addEventListener("abort", () => {
+        clearTimeout(t);
+        reject();
+      });
+    });
 
   /* ---------------- UI ---------------- */
+  if (!questions.length) return <p>Loading interview…</p>;
+
   return (
     <div className="min-h-screen bg-[#0b0b0e] text-gray-100">
       <div className="max-w-6xl mx-auto px-6 py-6">
@@ -1128,22 +1042,12 @@ const startAnswerFlow = async (signal: AbortSignal) => {
             {!recording && !aiSpeaking && (
               <p className="text-gray-500">Processing…</p>
             )}
-
-            {answer && (
-              <div className="mt-4 bg-black/50 p-4 rounded-lg">
-                {answer}
-              </div>
-            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-
-
-
 
 
 
